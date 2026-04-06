@@ -3,27 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Office Web Viewer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Office Viewer Pro - Ayub R</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        table { border-collapse: collapse; width: 100%; min-width: 600px; }
+        th { background-color: #3b82f6; color: white; position: sticky; top: 0; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 14px; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        tr:hover { background-color: #f1f5f9; }
+        .excel-container { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
+    </style>
 </head>
-<body class="bg-gray-100 p-5">
+<body class="bg-slate-50 min-h-screen p-4 md:p-10">
 
-    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h1 class="text-2xl font-bold mb-4 text-center">Buka File Excel & Word</h1>
-        
-        <input type="file" id="fileInput" accept=".xlsx, .docx" 
-               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-6"/>
+    <div class="max-w-5xl mx-auto">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 text-center">
+            <h1 class="text-3xl font-extrabold text-slate-800 mb-2">Office File Viewer</h1>
+            <p class="text-slate-500">Buka file .xlsx atau .docx dengan cepat & aman</p>
+            
+            <div class="mt-6">
+                <input type="file" id="fileInput" accept=".xlsx, .docx" 
+                       class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
+            </div>
+        </div>
 
-        <div id="viewer" class="border-t pt-4 overflow-auto max-h-[600px]">
-            <p class="text-gray-400 text-center italic">Belum ada file yang dipilih...</p>
+        <div id="searchBox" class="hidden mb-6">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    🔍
+                </span>
+                <input type="text" id="searchInput" placeholder="Cari data di dalam tabel..." 
+                       class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm transition-all">
+            </div>
+        </div>
+
+        <div id="viewer" class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 md:p-6 min-h-[400px]">
+            <div id="placeholder" class="flex flex-col items-center justify-center h-full py-20 text-slate-400">
+                <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Wait, select a file to start..."></path></svg>
+                <p class="italic">Silakan pilih file Excel atau Word dari perangkat Anda</p>
+            </div>
         </div>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
         const viewer = document.getElementById('viewer');
+        const searchBox = document.getElementById('searchBox');
+        const searchInput = document.getElementById('searchInput');
+        const placeholder = document.getElementById('placeholder');
 
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -31,37 +60,49 @@
 
             const fileName = file.name.toLowerCase();
             const reader = new FileReader();
+            
+            // Reset Tampilan
+            placeholder.classList.add('hidden');
+            viewer.innerHTML = '<div class="text-center py-10 text-blue-600 font-medium">Sedang memproses file...</div>';
+            searchBox.classList.add('hidden');
 
             if (fileName.endsWith('.xlsx')) {
-                // LOGIKA EXCEL
                 reader.onload = function(e) {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const firstSheet = workbook.SheetNames[0];
-                    const jsonData = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
-                    viewer.innerHTML = `<div class="excel-table">${jsonData}</div>`;
+                    const htmlTable = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
+                    
+                    viewer.innerHTML = `<div class="excel-container">${htmlTable}</div>`;
+                    searchBox.classList.remove('hidden'); // Munculkan pencarian untuk Excel
                 };
                 reader.readAsArrayBuffer(file);
 
             } else if (fileName.endsWith('.docx')) {
-                // LOGIKA WORD
                 reader.onload = function(e) {
                     mammoth.convertToHtml({arrayBuffer: e.target.result})
                         .then(result => {
-                            viewer.innerHTML = `<div class="prose max-w-none p-4">${result.value}</div>`;
+                            viewer.innerHTML = `<div class="prose max-w-none p-4 mx-auto">${result.value}</div>`;
                         })
-                        .catch(err => console.error(err));
+                        .catch(err => {
+                            viewer.innerHTML = `<div class="text-red-500 p-4">Error: Gagal membaca file Word.</div>`;
+                        });
                 };
                 reader.readAsArrayBuffer(file);
             }
         });
-    </script>
 
-    <style>
-        /* Styling agar tabel Excel terlihat rapi */
-        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-    </style>
+        // Logika Pencarian Tabel
+        searchInput.addEventListener('keyup', function() {
+            const filter = searchInput.value.toLowerCase();
+            const rows = viewer.querySelectorAll('tr');
+            
+            rows.forEach((row, index) => {
+                if (index === 0) return; // Lewati header
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filter) ? "" : "none";
+            });
+        });
+    </script>
 </body>
 </html>

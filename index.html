@@ -12,24 +12,24 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .sticky-header { position: sticky; top: 0; z-index: 10; }
         .doc-content { padding: 30px; line-height: 1.6; }
-        .doc-content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .doc-content td, .doc-content th { border: 1px solid #e2e8f0; padding: 8px; }
-        #pdfFrame { border: none; width: 100%; height: 80vh; border-radius: 1.5rem; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
 
-    <div class="flex-grow max-w-6xl mx-auto p-4 md:p-8 w-full">
-        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6 text-center">
+    <div class="flex-grow max-w-6xl mx-auto p-4 md:p-8 w-full text-center">
+        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6">
             <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic">OFFICE VIEW PRO</h1>
             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">PDF • WORD • EXCEL • CSV | AR DEVELOPER 2026</p>
             
-            <div class="flex flex-col md:flex-row gap-4 justify-center items-center mt-6">
-                <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" 
-                    class="block w-full max-w-xs text-xs text-slate-500 file:mr-4 file:py-3 file:px-8 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer shadow-md"/>
+            <div class="flex flex-col md:flex-row gap-4 justify-center items-center mt-8">
+                <button onclick="document.getElementById('fileInput').click()" 
+                    class="bg-blue-600 text-white font-black text-xs py-4 px-10 rounded-full shadow-lg active:scale-95 transition-all">
+                    📂 PILIH DOKUMEN
+                </button>
+                <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" class="hidden" />
                 
-                <input type="text" id="searchInput" placeholder="Cari data Excel (Anti-Lag)..." 
-                    class="p-3 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner">
+                <input type="text" id="searchInput" placeholder="Cari data Excel..." 
+                    class="p-4 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner">
             </div>
         </div>
 
@@ -37,16 +37,13 @@
             <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden text-[11px]">
                 <table id="excelTable" class="w-full text-left border-collapse"></table>
             </div>
-            <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden"></div>
-            <div id="pdfWrapper" class="hidden p-2">
-                <iframe id="pdfFrame"></iframe>
-            </div>
+            <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left"></div>
         </div>
 
-        <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic text-center p-4">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Membuka Dokumen...</div>
-            <span class="text-5xl mb-2 opacity-20">📂</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Pilih file untuk ditampilkan secara instan</p>
+        <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4">
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Sedang Memproses...</div>
+            <span class="text-5xl mb-2 opacity-20">📄</span>
+            <p id="statusText" class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Pilih file untuk mulai</p>
         </div>
     </div>
 
@@ -76,28 +73,26 @@
             const viewContainer = document.getElementById('viewContainer');
             const excelWrapper = document.getElementById('excelWrapper');
             const wordWrapper = document.getElementById('wordWrapper');
-            const pdfWrapper = document.getElementById('pdfWrapper');
             const searchInput = document.getElementById('searchInput');
 
-            // Reset Tampilan
             loadingIcon.classList.remove('hidden');
-            [excelWrapper, wordWrapper, pdfWrapper].forEach(el => el.classList.add('hidden'));
+            [excelWrapper, wordWrapper].forEach(el => el.classList.add('hidden'));
+
+            // 1. SOLUSI PDF (Direct Open)
+            if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+                const fileURL = URL.createObjectURL(file);
+                // Langsung buka di tab baru agar tidak terhalang keamanan iframe
+                window.open(fileURL, '_blank');
+                
+                loadingIcon.classList.add('hidden');
+                document.getElementById('statusText').innerText = "PDF Dibuka di Tab Baru";
+                return;
+            }
 
             const reader = new FileReader();
 
-            // 1. LOGIKA PDF (FIXED)
-            if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-                const url = URL.createObjectURL(file);
-                document.getElementById('pdfFrame').src = url;
-                
-                pdfWrapper.classList.remove('hidden');
-                viewContainer.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                searchInput.classList.add('hidden');
-                loadingIcon.classList.add('hidden');
-            }
             // 2. LOGIKA WORD
-            else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+            if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
                 reader.onload = function(e) {
                     mammoth.convertToHtml({arrayBuffer: e.target.result})
                         .then(function(result) {
@@ -107,7 +102,7 @@
                             placeholder.classList.add('hidden');
                             searchInput.classList.add('hidden');
                             loadingIcon.classList.add('hidden');
-                        }).catch(() => alert("Gagal memproses file Word."));
+                        });
                 };
                 reader.readAsArrayBuffer(file);
             } 
@@ -120,17 +115,13 @@
                         const sheet = workbook.Sheets[workbook.SheetNames[0]];
                         const rawData = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
                         fullData = rawData.map(row => row.map(cell => formatNumber(cell)));
-
                         renderTable(fullData);
-                        
                         excelWrapper.classList.remove('hidden');
                         viewContainer.classList.remove('hidden');
                         placeholder.classList.add('hidden');
                         searchInput.classList.remove('hidden');
                         loadingIcon.classList.add('hidden');
-                    } catch (err) {
-                        alert("Gagal membaca file Excel.");
-                    }
+                    } catch (err) { alert("Gagal membaca Excel."); }
                 };
                 reader.readAsArrayBuffer(file);
             }

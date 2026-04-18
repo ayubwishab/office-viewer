@@ -11,9 +11,10 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .sticky-header { position: sticky; top: 0; z-index: 10; }
-        .word-content { padding: 40px; line-height: 1.6; }
-        .word-content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .word-content td, .word-content th { border: 1px solid #e2e8f0; padding: 8px; }
+        .doc-content { padding: 30px; line-height: 1.6; }
+        .doc-content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .doc-content td, .doc-content th { border: 1px solid #e2e8f0; padding: 8px; }
+        iframe { border: none; width: 100%; height: 75vh; border-radius: 1.5rem; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
@@ -22,29 +23,32 @@
         <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic">OFFICE VIEW PRO</h1>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Solusi cepat buka .xlsx, .xls & .docx secara instan</p>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">PDF • WORD • EXCEL • CSV | INSTANT VIEWER</p>
             </div>
             
             <div class="flex flex-col md:flex-row gap-4 justify-center items-center">
-                <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx" 
+                <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" 
                     class="block w-full max-w-xs text-xs text-slate-500 file:mr-4 file:py-3 file:px-8 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer shadow-md"/>
                 
-                <input type="text" id="searchInput" placeholder="Cari data (Anti-Lag)..." 
+                <input type="text" id="searchInput" placeholder="Cari data Excel (Anti-Lag)..." 
                     class="p-3 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner">
             </div>
         </div>
 
         <div id="viewContainer" class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200 hidden">
-            <div id="excelWrapper" class="overflow-x-auto max-h-[70vh] hidden">
-                <table id="excelTable" class="w-full text-left text-[11px] border-collapse"></table>
+            <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden text-[11px]">
+                <table id="excelTable" class="w-full text-left border-collapse"></table>
             </div>
-            <div id="wordWrapper" class="word-content overflow-y-auto max-h-[70vh] hidden"></div>
+            <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden"></div>
+            <div id="pdfWrapper" class="hidden p-2">
+                <iframe id="pdfFrame"></iframe>
+            </div>
         </div>
 
-        <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse">Membaca Dokumen...</div>
+        <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic text-center p-4">
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Sedang Memuat Dokumen...</div>
             <span class="text-5xl mb-2 opacity-20">📂</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Pilih Dokumen Anda</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Pilih file PDF, Word, atau Excel <br>untuk ditampilkan secara instan</p>
         </div>
     </div>
 
@@ -58,11 +62,10 @@
         let fullData = [];
         let timeout = null;
 
-        // FUNGSI FORMAT ANGKA (TITIK RIBUAN)
+        // FORMAT RIBUAN DENGAN TITIK (.)
         function formatNumber(val) {
-            if (val === "" || isNaN(val) || val === null) return val;
+            if (val === "" || isNaN(val) || val === null || typeof val === 'object') return val;
             let num = parseFloat(val);
-            // Hanya format jika angka bulat besar atau desimal tertentu (bukan tahun/ID)
             if (num > 999 || num < -999) {
                 return num.toLocaleString('id-ID');
             }
@@ -78,28 +81,44 @@
             const viewContainer = document.getElementById('viewContainer');
             const excelWrapper = document.getElementById('excelWrapper');
             const wordWrapper = document.getElementById('wordWrapper');
+            const pdfWrapper = document.getElementById('pdfWrapper');
+            const searchInput = document.getElementById('searchInput');
 
             loadingIcon.classList.remove('hidden');
-            placeholder.querySelector('p').innerText = "Memproses " + file.name;
+            placeholder.querySelector('p').innerText = "Membuka " + file.name;
 
             const reader = new FileReader();
 
-            // LOGIKA WORD (.docx)
-            if (file.name.endsWith(".docx")) {
+            // 1. LOGIKA PDF
+            if (file.type === "application/pdf") {
+                const blob = new Blob([file], {type: 'application/pdf'});
+                const url = URL.createObjectURL(blob);
+                document.getElementById('pdfFrame').src = url;
+                
+                pdfWrapper.classList.remove('hidden');
+                excelWrapper.classList.add('hidden');
+                wordWrapper.classList.add('hidden');
+                viewContainer.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                searchInput.classList.add('hidden');
+            }
+            // 2. LOGIKA WORD (.doc & .docx)
+            else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
                 reader.onload = function(e) {
                     mammoth.convertToHtml({arrayBuffer: e.target.result})
                         .then(function(result) {
                             wordWrapper.innerHTML = result.value;
                             wordWrapper.classList.remove('hidden');
                             excelWrapper.classList.add('hidden');
+                            pdfWrapper.classList.add('hidden');
                             viewContainer.classList.remove('hidden');
                             placeholder.classList.add('hidden');
-                            document.getElementById('searchInput').classList.add('hidden');
-                        });
+                            searchInput.classList.add('hidden');
+                        }).catch(() => alert("Gagal memproses file Word."));
                 };
                 reader.readAsArrayBuffer(file);
             } 
-            // LOGIKA EXCEL (.xlsx, .xls, .csv)
+            // 3. LOGIKA EXCEL (.xlsx, .xls, .csv)
             else {
                 reader.onload = function(e) {
                     try {
@@ -107,7 +126,6 @@
                         const workbook = XLSX.read(data, {type: 'array', cellDates: true});
                         const sheet = workbook.Sheets[workbook.SheetNames[0]];
                         
-                        // Konversi data & Terapkan format angka titik
                         const rawData = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
                         fullData = rawData.map(row => row.map(cell => formatNumber(cell)));
 
@@ -115,19 +133,19 @@
                         
                         excelWrapper.classList.remove('hidden');
                         wordWrapper.classList.add('hidden');
+                        pdfWrapper.classList.add('hidden');
                         viewContainer.classList.remove('hidden');
                         placeholder.classList.add('hidden');
-                        document.getElementById('searchInput').classList.remove('hidden');
+                        searchInput.classList.remove('hidden');
                     } catch (err) {
                         alert("Gagal membaca file Excel.");
-                        loadingIcon.classList.add('hidden');
                     }
                 };
                 reader.readAsArrayBuffer(file);
             }
         });
 
-        // SEARCH ANTI-LAG
+        // SEARCH ANTI-LAG UNTUK EXCEL
         document.getElementById('searchInput').addEventListener('input', function(e) {
             clearTimeout(timeout);
             const keyword = e.target.value.toLowerCase();

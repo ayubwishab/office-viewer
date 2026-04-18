@@ -13,16 +13,38 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .sticky-header { position: sticky; top: 0; z-index: 10; }
         .doc-content { padding: 30px; line-height: 1.6; }
-        #pdfCanvasContainer { width: 100%; display: flex; flex-direction: column; items: center; gap: 10px; padding: 10px; background: #e2e8f0; }
-        canvas { max-width: 100%; height: auto; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-radius: 8px; }
+        
+        /* Area PDF dengan kemampuan Scroll Horizontal agar tetap HD */
+        #pdfWrapper { 
+            width: 100%; 
+            max-height: 75vh; 
+            overflow: auto; /* Mengaktifkan scroll jika file lebar */
+            background: #cbd5e1; 
+            border-radius: 1.5rem;
+        }
+        #pdfCanvasContainer { 
+            display: inline-block; /* Agar container selebar konten HD-nya */
+            min-width: 100%;
+            display: flex; 
+            flex-direction: column; 
+            items: center; 
+            gap: 20px; 
+            padding: 20px; 
+        }
+        canvas { 
+            /* Menghapus pembatasan lebar agar render HD tidak dipaksa mengecil/buram */
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); 
+            border-radius: 4px;
+            max-width: none !important; 
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
 
     <div class="flex-grow max-w-6xl mx-auto p-4 md:p-8 w-full text-center">
-        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6">
+        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6 text-center">
             <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic leading-none">OFFICE VIEW PRO</h1>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">PDF • WORD • EXCEL • CSV | AR DEVELOPER 2026</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 font-black">HD PDF • WORD • EXCEL • CSV | AR DEVELOPER 2026</p>
             
             <div class="flex flex-col md:flex-row gap-4 justify-center items-center mt-8">
                 <button onclick="document.getElementById('fileInput').click()" 
@@ -31,24 +53,22 @@
                 </button>
                 <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" class="hidden" />
                 <input type="text" id="searchInput" placeholder="Cari data Excel..." 
-                    class="p-4 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner">
+                    class="p-4 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner border border-slate-200">
             </div>
         </div>
 
         <div id="viewContainer" class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200 hidden">
             <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden text-[11px]"><table id="excelTable" class="w-full text-left border-collapse"></table></div>
-            <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left"></div>
-            <div id="pdfWrapper" class="hidden max-h-[75vh] overflow-y-auto">
+            <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left bg-white"></div>
+            <div id="pdfWrapper" class="hidden">
                 <div id="pdfCanvasContainer"></div>
             </div>
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center">
-                <span>Memproses Dokumen...</span>
-            </div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Memproses High-Definition...</div>
             <span class="text-5xl mb-2 opacity-20">📄</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Tampilan akan muncul di sini</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Tampilan HD Scroll Aktif</p>
         </div>
     </div>
 
@@ -91,15 +111,19 @@
                     const typedarray = new Uint8Array(this.result);
                     const pdf = await pdfjsLib.getDocument(typedarray).promise;
                     const container = document.getElementById('pdfCanvasContainer');
-                    container.innerHTML = ''; // Bersihkan canvas lama
+                    container.innerHTML = ''; 
 
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({scale: 1.5});
+                        
+                        // SKALA HD: Kita pakai 2.0 agar teks tajam silet
+                        const viewport = page.getViewport({scale: 2.0}); 
+
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
                         canvas.width = viewport.width;
+
                         await page.render({canvasContext: context, viewport: viewport}).promise;
                         container.appendChild(canvas);
                     }

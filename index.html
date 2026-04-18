@@ -12,13 +12,16 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .sticky-header { position: sticky; top: 0; z-index: 10; }
         .doc-content { padding: 30px; line-height: 1.6; }
+        /* Kontainer PDF yang ditingkatkan agar stabil */
+        #pdfWrapper { width: 100%; height: 80vh; -webkit-overflow-scrolling: touch; overflow-y: auto; }
+        object { width: 100%; height: 100%; border-radius: 1.5rem; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
 
     <div class="flex-grow max-w-6xl mx-auto p-4 md:p-8 w-full text-center">
         <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6">
-            <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic">OFFICE VIEW PRO</h1>
+            <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic leading-none">OFFICE VIEW PRO</h1>
             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">PDF • WORD • EXCEL • CSV | AR DEVELOPER 2026</p>
             
             <div class="flex flex-col md:flex-row gap-4 justify-center items-center mt-8">
@@ -38,12 +41,20 @@
                 <table id="excelTable" class="w-full text-left border-collapse"></table>
             </div>
             <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left"></div>
+            <div id="pdfWrapper" class="hidden bg-slate-200">
+                <object id="pdfObject" data="" type="application/pdf">
+                    <div class="p-10 text-slate-500 font-bold">
+                        Browser Anda tidak mendukung pratinjau PDF langsung. <br>
+                        <a id="pdfDownloadLink" href="#" class="text-blue-600 underline">Klik di sini untuk mengunduh.</a>
+                    </div>
+                </object>
+            </div>
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Sedang Memproses...</div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Memproses Dokumen...</div>
             <span class="text-5xl mb-2 opacity-20">📄</span>
-            <p id="statusText" class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Pilih file untuk mulai</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Dokumen akan tampil di sini</p>
         </div>
     </div>
 
@@ -73,26 +84,28 @@
             const viewContainer = document.getElementById('viewContainer');
             const excelWrapper = document.getElementById('excelWrapper');
             const wordWrapper = document.getElementById('wordWrapper');
+            const pdfWrapper = document.getElementById('pdfWrapper');
             const searchInput = document.getElementById('searchInput');
 
             loadingIcon.classList.remove('hidden');
-            [excelWrapper, wordWrapper].forEach(el => el.classList.add('hidden'));
+            [excelWrapper, wordWrapper, pdfWrapper].forEach(el => el.classList.add('hidden'));
 
-            // 1. SOLUSI PDF (Direct Open)
+            // LOGIKA PDF (Ditingkatkan agar tidak macet)
             if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
                 const fileURL = URL.createObjectURL(file);
-                // Langsung buka di tab baru agar tidak terhalang keamanan iframe
-                window.open(fileURL, '_blank');
+                const pdfObj = document.getElementById('pdfObject');
+                pdfObj.data = fileURL;
+                document.getElementById('pdfDownloadLink').href = fileURL;
                 
+                pdfWrapper.classList.remove('hidden');
+                viewContainer.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                searchInput.classList.add('hidden');
                 loadingIcon.classList.add('hidden');
-                document.getElementById('statusText').innerText = "PDF Dibuka di Tab Baru";
-                return;
-            }
-
-            const reader = new FileReader();
-
-            // 2. LOGIKA WORD
-            if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+            } 
+            // LOGIKA WORD
+            else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+                const reader = new FileReader();
                 reader.onload = function(e) {
                     mammoth.convertToHtml({arrayBuffer: e.target.result})
                         .then(function(result) {
@@ -106,8 +119,9 @@
                 };
                 reader.readAsArrayBuffer(file);
             } 
-            // 3. LOGIKA EXCEL
+            // LOGIKA EXCEL
             else {
+                const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);

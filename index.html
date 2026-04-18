@@ -7,14 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .sticky-header { position: sticky; top: 0; z-index: 10; }
         .doc-content { padding: 30px; line-height: 1.6; }
-        /* Kontainer PDF yang ditingkatkan agar stabil */
-        #pdfWrapper { width: 100%; height: 80vh; -webkit-overflow-scrolling: touch; overflow-y: auto; }
-        object { width: 100%; height: 100%; border-radius: 1.5rem; }
+        #pdfCanvasContainer { width: 100%; display: flex; flex-direction: column; items: center; gap: 10px; padding: 10px; background: #e2e8f0; }
+        canvas { max-width: 100%; height: auto; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-radius: 8px; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
@@ -30,31 +30,25 @@
                     📂 PILIH DOKUMEN
                 </button>
                 <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" class="hidden" />
-                
                 <input type="text" id="searchInput" placeholder="Cari data Excel..." 
                     class="p-4 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner">
             </div>
         </div>
 
         <div id="viewContainer" class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200 hidden">
-            <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden text-[11px]">
-                <table id="excelTable" class="w-full text-left border-collapse"></table>
-            </div>
+            <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden text-[11px]"><table id="excelTable" class="w-full text-left border-collapse"></table></div>
             <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left"></div>
-            <div id="pdfWrapper" class="hidden bg-slate-200">
-                <object id="pdfObject" data="" type="application/pdf">
-                    <div class="p-10 text-slate-500 font-bold">
-                        Browser Anda tidak mendukung pratinjau PDF langsung. <br>
-                        <a id="pdfDownloadLink" href="#" class="text-blue-600 underline">Klik di sini untuk mengunduh.</a>
-                    </div>
-                </object>
+            <div id="pdfWrapper" class="hidden max-h-[75vh] overflow-y-auto">
+                <div id="pdfCanvasContainer"></div>
             </div>
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs">Memproses Dokumen...</div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center">
+                <span>Memproses Dokumen...</span>
+            </div>
             <span class="text-5xl mb-2 opacity-20">📄</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Dokumen akan tampil di sini</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40">Tampilan akan muncul di sini</p>
         </div>
     </div>
 
@@ -65,6 +59,7 @@
     </footer>
 
     <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         let fullData = [];
         let timeout = null;
 
@@ -75,7 +70,7 @@
             return val;
         }
 
-        document.getElementById('fileInput').addEventListener('change', function(e) {
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -90,20 +85,31 @@
             loadingIcon.classList.remove('hidden');
             [excelWrapper, wordWrapper, pdfWrapper].forEach(el => el.classList.add('hidden'));
 
-            // LOGIKA PDF (Ditingkatkan agar tidak macet)
             if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-                const fileURL = URL.createObjectURL(file);
-                const pdfObj = document.getElementById('pdfObject');
-                pdfObj.data = fileURL;
-                document.getElementById('pdfDownloadLink').href = fileURL;
-                
-                pdfWrapper.classList.remove('hidden');
-                viewContainer.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                searchInput.classList.add('hidden');
-                loadingIcon.classList.add('hidden');
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    const container = document.getElementById('pdfCanvasContainer');
+                    container.innerHTML = ''; // Bersihkan canvas lama
+
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const viewport = page.getViewport({scale: 1.5});
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        await page.render({canvasContext: context, viewport: viewport}).promise;
+                        container.appendChild(canvas);
+                    }
+                    pdfWrapper.classList.remove('hidden');
+                    viewContainer.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    loadingIcon.classList.add('hidden');
+                };
+                reader.readAsArrayBuffer(file);
             } 
-            // LOGIKA WORD
             else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -113,44 +119,28 @@
                             wordWrapper.classList.remove('hidden');
                             viewContainer.classList.remove('hidden');
                             placeholder.classList.add('hidden');
-                            searchInput.classList.add('hidden');
                             loadingIcon.classList.add('hidden');
                         });
                 };
                 reader.readAsArrayBuffer(file);
             } 
-            // LOGIKA EXCEL
             else {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array', cellDates: true});
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const rawData = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
-                        fullData = rawData.map(row => row.map(cell => formatNumber(cell)));
-                        renderTable(fullData);
-                        excelWrapper.classList.remove('hidden');
-                        viewContainer.classList.remove('hidden');
-                        placeholder.classList.add('hidden');
-                        searchInput.classList.remove('hidden');
-                        loadingIcon.classList.add('hidden');
-                    } catch (err) { alert("Gagal membaca Excel."); }
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rawData = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
+                    fullData = rawData.map(row => row.map(cell => formatNumber(cell)));
+                    renderTable(fullData);
+                    excelWrapper.classList.remove('hidden');
+                    viewContainer.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    searchInput.classList.remove('hidden');
+                    loadingIcon.classList.add('hidden');
                 };
                 reader.readAsArrayBuffer(file);
             }
-        });
-
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            clearTimeout(timeout);
-            const keyword = e.target.value.toLowerCase();
-            timeout = setTimeout(() => {
-                const filtered = fullData.filter((row, i) => {
-                    if (i === 0) return true;
-                    return row.some(cell => String(cell).toLowerCase().includes(keyword));
-                });
-                renderTable(filtered);
-            }, 300);
         });
 
         function renderTable(data) {

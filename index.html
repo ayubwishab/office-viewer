@@ -12,38 +12,37 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* HEADER TABEL MODERN */
+        /* HEADER TABEL KEMBALI SEPERTI SEMULA (GELAP SOLID) */
         .sticky-header { 
             position: sticky; 
             top: 0; 
             z-index: 10; 
-            background-color: #0f172a; 
-            color: #ffffff;
+            background-color: #0f172a !important; 
+            color: #ffffff !important;
             font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
-        /* TAMPILAN TABEL EXCEL MODERN */
+        /* TAMPILAN TABEL EXCEL */
         #excelTable { border-collapse: separate; border-spacing: 0; }
         #excelTable tr:nth-child(even) { background-color: #f8fafc; }
         #excelTable td { 
             white-space: nowrap; 
             border-right: 1px solid #e2e8f0; 
             border-bottom: 1px solid #e2e8f0;
-            padding: 16px;
-            font-weight: 600; /* Huruf lebih tebal agar jelas */
+            padding: 14px 16px;
+            font-weight: 600; /* Tetap tebal agar jernih */
             color: #1e293b;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
-        /* FITUR: Warna Biru saat baris diklik */
+        /* FITUR: KLIK BIRU DIBUAT LEBIH JELAS (TIDAK SAMAR) */
         .row-active { 
-            background-color: #eff6ff !important; 
-            box-shadow: inset 4px 0 0 #2563eb;
+            background-color: #2563eb !important; /* Biru Terang Mantap */
         }
-        .row-active td { color: #1e40af !important; font-weight: 700 !important; }
+        .row-active td { 
+            color: #ffffff !important; /* Teks jadi Putih agar kontras */
+            font-weight: 800 !important;
+        }
 
         /* PDF HD Scroll */
         #pdfWrapper { width: 100%; max-height: 75vh; overflow: auto; background: #cbd5e1; border-radius: 1.5rem; }
@@ -76,15 +75,14 @@
             <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden">
                 <table id="excelTable" class="w-full text-left text-[12px]"></table>
             </div>
-            
             <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left bg-white"></div>
             <div id="pdfWrapper" class="hidden"><div id="pdfCanvasContainer"></div></div>
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4 text-center">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses Data Modern...</span></div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses Data...</span></div>
             <span class="text-5xl mb-2 opacity-20">📂</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Excel Modern & PDF HD Aktif</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Klik baris untuk highlight biru terang</p>
         </div>
     </div>
 
@@ -203,7 +201,7 @@
             const table = document.getElementById('excelTable');
             table.innerHTML = data.map((row, i) => `
                 <tr onclick="${i === 0 ? '' : 'toggleRowColor(this)'}" class="${i === 0 ? 'sticky-header' : 'hover:bg-slate-50 transition-colors'}">
-                    ${row.map(cell => `<td class="min-w-[160px]">${cell}</td>`).join('')}
+                    ${row.map(cell => `<td>${cell}</td>`).join('')}
                 </tr>
             `).join('');
         }

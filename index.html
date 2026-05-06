@@ -8,23 +8,49 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .sticky-header { position: sticky; top: 0; z-index: 10; background-color: #0f172a; }
-        .doc-content { padding: 30px; line-height: 1.6; }
         
-        /* Tampilan Tabel Excel */
-        #excelTable tr:nth-child(even) { background-color: #f8fafc; }
-        #excelTable td { white-space: nowrap; border-right: 1px solid #e2e8f0; cursor: pointer; }
+        /* HEADER TABEL MODERN */
+        .sticky-header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            background-color: #0f172a; 
+            color: #ffffff;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-        /* FITUR BARU: Warna Biru saat baris diklik */
-        .row-active { background-color: #dbeafe !important; outline: 2px solid #2563eb; }
+        /* TAMPILAN TABEL EXCEL MODERN */
+        #excelTable { border-collapse: separate; border-spacing: 0; }
+        #excelTable tr:nth-child(even) { background-color: #f8fafc; }
+        #excelTable td { 
+            white-space: nowrap; 
+            border-right: 1px solid #e2e8f0; 
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px;
+            font-weight: 600; /* Huruf lebih tebal agar jelas */
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* FITUR: Warna Biru saat baris diklik */
+        .row-active { 
+            background-color: #eff6ff !important; 
+            box-shadow: inset 4px 0 0 #2563eb;
+        }
+        .row-active td { color: #1e40af !important; font-weight: 700 !important; }
 
         /* PDF HD Scroll */
         #pdfWrapper { width: 100%; max-height: 75vh; overflow: auto; background: #cbd5e1; border-radius: 1.5rem; }
         #pdfCanvasContainer { display: flex; flex-direction: column; items: center; gap: 20px; padding: 20px; }
         canvas { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); border-radius: 4px; max-width: none !important; }
+        
+        .doc-content { padding: 30px; line-height: 1.6; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
@@ -40,6 +66,7 @@
                     📂 PILIH DOKUMEN
                 </button>
                 <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .doc, .pdf" class="hidden" />
+                
                 <input type="text" id="searchInput" placeholder="Cari data (Anti-Lag)..." 
                     class="p-4 px-6 rounded-full bg-slate-100 border-none outline-none text-xs font-bold focus:ring-2 focus:ring-blue-400 w-full md:w-64 hidden shadow-inner border border-slate-200">
             </div>
@@ -47,16 +74,17 @@
 
         <div id="viewContainer" class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200 hidden">
             <div id="excelWrapper" class="overflow-x-auto max-h-[75vh] hidden">
-                <table id="excelTable" class="w-full text-left border-collapse text-[11px]"></table>
+                <table id="excelTable" class="w-full text-left text-[12px]"></table>
             </div>
+            
             <div id="wordWrapper" class="doc-content overflow-y-auto max-h-[75vh] hidden text-left bg-white"></div>
             <div id="pdfWrapper" class="hidden"><div id="pdfCanvasContainer"></div></div>
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4 text-center">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses...</span></div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses Data Modern...</span></div>
             <span class="text-5xl mb-2 opacity-20">📂</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed tracking-tighter">Klik baris Excel untuk memberi warna biru</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Excel Modern & PDF HD Aktif</p>
         </div>
     </div>
 
@@ -78,11 +106,8 @@
             return val;
         }
 
-        // FUNGSI UNTUK MENANDAI BARIS (BIRU)
         function toggleRowColor(rowElement) {
-            // Hapus warna biru dari semua baris lain
             document.querySelectorAll('#excelTable tr').forEach(tr => tr.classList.remove('row-active'));
-            // Tambahkan warna biru ke baris yang diklik
             rowElement.classList.add('row-active');
         }
 
@@ -177,8 +202,8 @@
         function renderTable(data) {
             const table = document.getElementById('excelTable');
             table.innerHTML = data.map((row, i) => `
-                <tr onclick="${i === 0 ? '' : 'toggleRowColor(this)'}" class="${i === 0 ? 'text-white font-bold sticky-header' : 'border-b border-slate-100 hover:bg-slate-50 transition-colors'}">
-                    ${row.map(cell => `<td class="p-4 min-w-[150px]">${cell}</td>`).join('')}
+                <tr onclick="${i === 0 ? '' : 'toggleRowColor(this)'}" class="${i === 0 ? 'sticky-header' : 'hover:bg-slate-50 transition-colors'}">
+                    ${row.map(cell => `<td class="min-w-[160px]">${cell}</td>`).join('')}
                 </tr>
             `).join('');
         }

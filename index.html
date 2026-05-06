@@ -12,14 +12,19 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* HEADER TABEL KEMBALI SEPERTI SEMULA (GELAP SOLID) */
+        /* FIX: HEADER DENGAN TEKS PUTIH TERANG (SANGAT JELAS) */
         .sticky-header { 
             position: sticky; 
             top: 0; 
             z-index: 10; 
             background-color: #0f172a !important; 
-            color: #ffffff !important;
             font-weight: 800;
+            text-transform: uppercase;
+        }
+        /* Memastikan semua sel di header berwarna putih */
+        .sticky-header td {
+            color: #ffffff !important; 
+            border-bottom: 2px solid #334155 !important;
         }
 
         /* TAMPILAN TABEL EXCEL */
@@ -30,17 +35,17 @@
             border-right: 1px solid #e2e8f0; 
             border-bottom: 1px solid #e2e8f0;
             padding: 14px 16px;
-            font-weight: 600; /* Tetap tebal agar jernih */
+            font-weight: 600; 
             color: #1e293b;
             cursor: pointer;
         }
 
-        /* FITUR: KLIK BIRU DIBUAT LEBIH JELAS (TIDAK SAMAR) */
+        /* KLIK BIRU TERANG (KONTRAST TINGGI) */
         .row-active { 
-            background-color: #2563eb !important; /* Biru Terang Mantap */
+            background-color: #2563eb !important; 
         }
         .row-active td { 
-            color: #ffffff !important; /* Teks jadi Putih agar kontras */
+            color: #ffffff !important; 
             font-weight: 800 !important;
         }
 
@@ -55,7 +60,7 @@
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
 
     <div class="flex-grow max-w-6xl mx-auto p-4 md:p-8 w-full text-center">
-        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6">
+        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 mb-6 text-center">
             <h1 class="text-3xl font-black text-blue-600 tracking-tighter uppercase italic leading-none">OFFICE VIEW PRO</h1>
             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 font-black">PDF • WORD • EXCEL • CSV | AR DEVELOPER 2026</p>
             
@@ -80,9 +85,9 @@
         </div>
 
         <div id="placeholder" class="h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 italic p-4 text-center">
-            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses Data...</span></div>
+            <div id="loadingIcon" class="hidden mb-4 italic text-blue-600 font-bold animate-pulse text-xs text-center"><span>Memproses...</span></div>
             <span class="text-5xl mb-2 opacity-20">📂</span>
-            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Klik baris untuk highlight biru terang</p>
+            <p class="font-black uppercase tracking-widest text-[10px] opacity-40 leading-relaxed">Header diperbaiki (Teks Putih) & Baris Biru Terang</p>
         </div>
     </div>
 
